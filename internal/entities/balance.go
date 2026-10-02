@@ -1,9 +1,6 @@
 package entities
 
-import (
-	_ "fmt"
-	"time"
-)
+import "time"
 
 type Balance struct {
 	Id        int64

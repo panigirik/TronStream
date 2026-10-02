@@ -1,9 +1,6 @@
 package entities
 
-import (
-	_ "fmt"
-	"time"
-)
+import "time"
 
 const (
 	UserRole Role = iota + 1
