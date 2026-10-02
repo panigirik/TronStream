@@ -2,6 +2,7 @@ package entities
 
 import (
 	_ "fmt"
+	"time"
 )
 
 const (
@@ -12,7 +13,9 @@ const (
 type Role int8
 
 type User struct {
-	Id   int64
-	Name string
-	Role string
+	Id           int64
+	Email        string
+	PasswordHash string
+	Role         Role
+	CreatedAt    time.Time
 }
