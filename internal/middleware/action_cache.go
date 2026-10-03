@@ -29,6 +29,7 @@ func (ac *ActionCache) Add(action OutboxAction) {
 
 func (ac *ActionCache) Flush(BatchSize int64) []OutboxAction {
 	ac.mu.Lock()
+	defer ac.mu.Unlock()
 
 	if len(ac.actions) == 0 {
 		return nil
@@ -36,6 +37,5 @@ func (ac *ActionCache) Flush(BatchSize int64) []OutboxAction {
 
 	dump := ac.actions
 	ac.actions = make([]OutboxAction, 0, BatchSize)
-	ac.mu.Unlock()
 	return dump
 }

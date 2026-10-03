@@ -38,7 +38,7 @@ func (a *AuthTokenRepository) Rotate(ctx context.Context, userId int64, NewRefre
 
 	_, err = tx.Exec(ctx,
 		`INSERT INTO auth_tokens (user_id, refresh_token, created_at, expires_at)
-			VALUES ($1, $2, NOW(), NOW(), NOW + INTERVAL '30 days')`, userId, NewRefreshToken)
+			VALUES ($1, $2, NOW(), NOW() + INTERVAL '30 days')`, userId, NewRefreshToken)
 	if err != nil {
 		return err
 	}

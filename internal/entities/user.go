@@ -10,9 +10,10 @@ const (
 type Role int8
 
 type User struct {
-	Id           int64
-	Email        string
-	PasswordHash string
-	Role         Role
-	CreatedAt    time.Time
+	Id             int64
+	Email          string
+	PasswordHash   string
+	DepositAddress string
+	Role           Role
+	CreatedAt      time.Time
 }

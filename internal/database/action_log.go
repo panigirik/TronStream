@@ -14,7 +14,7 @@ type PayloadRepository struct {
 	db *pgxpool.Pool
 }
 
-func NewPayload(db *pgxpool.Pool) *PayloadRepository {
+func NewPayloadRepository(db *pgxpool.Pool) *PayloadRepository {
 	return &PayloadRepository{db: db}
 }
 

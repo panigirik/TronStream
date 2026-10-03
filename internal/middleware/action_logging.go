@@ -34,7 +34,7 @@ func (a *ActionLogging) ActionLoggingMiddleware(next http.Handler) http.Handler 
 			r.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
 		}
 
-		userId, _ := r.Context().Value("userId").(string)
+		userId, _ := r.Context().Value(UserIdKey).(string)
 		action := OutboxAction{
 			UserId:    userId,
 			Payload:   payload,
@@ -42,7 +42,7 @@ func (a *ActionLogging) ActionLoggingMiddleware(next http.Handler) http.Handler 
 			CreatedAt: time.Now(),
 		}
 		a.ActionCache.Add(action)
-		ctx := context.WithValue(r.Context(), UserIdKey, payload)
+		ctx := context.WithValue(r.Context(), UserIdKey, userId)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

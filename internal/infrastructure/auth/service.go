@@ -6,6 +6,7 @@ import (
 	"TronStream/internal/infrastructure/token"
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -13,22 +14,38 @@ import (
 )
 
 type AuthService struct {
-	UserRepository *database.UserRepository
-	TokenService   *token.TokenService
+	UserRepository   *database.UserRepository
+	WallerRepository *database.WalletRepository
+	TokenService     *token.TokenService
 }
 
+const depositAddress string = "TKSi6eG81XrSjbXEoHWzUq6Fg2ava9pDbs"
+
 func (s *AuthService) SignUp(ctx context.Context, email string, password string) (*entities.User, error) {
+	email = strings.ToLower(strings.TrimSpace(email))
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, err
 	}
 
 	user := &entities.User{
-		Id:           0,
-		Email:        email,
-		PasswordHash: string(hash),
-		Role:         entities.UserRole,
-		CreatedAt:    time.Now(),
+		Email:          email,
+		PasswordHash:   string(hash),
+		DepositAddress: depositAddress,
+		Role:           entities.UserRole,
+		CreatedAt:      time.Now(),
+	}
+	userId, err := s.UserRepository.CreateUser(ctx, user)
+	if err != nil {
+		return nil, err
+	}
+	user.Id = userId
+
+	if s.WallerRepository == nil {
+		return nil, errors.New("wallet repository is not configured")
+	}
+	if err := s.WallerRepository.AddWallet(ctx, userId); err != nil {
+		return nil, fmt.Errorf("create wallet: %w", err)
 	}
 
 	return user, nil

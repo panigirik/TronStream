@@ -8,15 +8,13 @@ import (
 	"time"
 )
 
-// 1. Вот ОН! Интерфейс, который мы объявили здесь, на стороне потребителя (джобы).
-// Благодаря этому джоба ничего не знает про пакет database и pgxpool.
 type OutboxSaver interface {
 	SaveBatch(ctx context.Context, actions []entities.ActionLog) error
 }
 
 type OutboxJob struct {
 	cache    *middleware.ActionCache
-	repo     OutboxSaver // Сюда мы передадим наш PayloadRepository
+	repo     OutboxSaver
 	interval time.Duration
 }
 
@@ -28,7 +26,6 @@ func NewOutboxJob(cache *middleware.ActionCache, repo OutboxSaver, interval time
 	}
 }
 
-// Start запускает бесконечный цикл в фоне
 func (j *OutboxJob) Start(ctx context.Context) {
 	// Тикер будет пинговать нас каждые X секунд
 	ticker := time.NewTicker(j.interval)
@@ -50,7 +47,6 @@ func (j *OutboxJob) Start(ctx context.Context) {
 				continue // Кэш пустой, спать дальше
 			}
 
-			// Маппим структуру из middleware в структуру для базы данных
 			dbActions := make([]entities.ActionLog, len(rawActions))
 			for i, a := range rawActions {
 				dbActions[i] = entities.ActionLog{

@@ -16,3 +16,11 @@ func NewBalance(userId int64) *Balance {
 		CreatedAt: time.Now(),
 	}
 }
+
+func (bal *Balance) spend(amount float64) {
+	bal.Balance = bal.Balance - amount
+}
+
+func (bal *Balance) deposit(amount float64) {
+	bal.Balance = bal.Balance + amount
+}
