@@ -2,25 +2,47 @@ package main
 
 import (
 	"TronStream/internal/api"
+	"TronStream/internal/infrastructure/background_jobs"
 	"TronStream/internal/middleware"
+	"context"
 	"fmt"
 	"net/http"
+	"os/signal"
+	"syscall"
+	"time"
 )
 
 func main() {
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /", api.HealthHandler)
 	protectedProfileHandler := middleware.AuthMiddleware(http.HandlerFunc(handleProfile))
 	mux.Handle("/user/profile", protectedProfileHandler)
 	api.NewHandler().Routes(mux)
+	sheduler := background_jobs.NewScheduler()
+	go sheduler.Start(ctx)
+
+	server := &http.Server{
+		Addr:    ":8080",
+		Handler: mux,
+	}
 
 	go func() {
-		if err := http.ListenAndServe(":8080", mux); err != nil {
+		if err := server.ListenAndServe(); err != nil {
 			fmt.Println("Error starting HTTP server:", err)
 		}
 	}()
 
-	select {}
+	<-ctx.Done()
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := server.Shutdown(shutdownCtx); err != nil {
+		fmt.Printf("HTTP server Shutdown Failed:%+v\n", err)
+	}
 
 }
 

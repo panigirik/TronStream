@@ -2,12 +2,10 @@ package middleware
 
 import (
 	"context"
-	_ "fmt"
 	"net/http"
 	"strings"
 
 	"github.com/golang-jwt/jwt/v5"
-	_ "github.com/golang-jwt/jwt/v5"
 )
 
 type contextKey string
