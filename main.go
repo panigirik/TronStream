@@ -2,6 +2,8 @@ package main
 
 import (
 	"TronStream/internal/api"
+	"TronStream/internal/config"
+	"TronStream/internal/database"
 	"TronStream/internal/infrastructure/background_jobs"
 	"TronStream/internal/middleware"
 	"context"
@@ -15,6 +17,15 @@ import (
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
+
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		return
+	}
+
+	if err := database.RunMigrations(cfg.PostgresMigrationURL(), cfg.MigrationsDir); err != nil {
+		return //TODO добавить логирование
+	}
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /", api.HealthHandler)
