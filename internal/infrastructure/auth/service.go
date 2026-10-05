@@ -13,15 +13,15 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-type AuthService struct {
+type Service struct {
 	UserRepository   *database.UserRepository
 	WallerRepository *database.WalletRepository
-	TokenService     *token.TokenService
+	TokenService     *token.Service
 }
 
 const depositAddress string = "TKSi6eG81XrSjbXEoHWzUq6Fg2ava9pDbs"
 
-func (s *AuthService) SignUp(ctx context.Context, email string, password string) (*entities.User, error) {
+func (s *Service) SignUp(ctx context.Context, email string, password string) (*entities.User, error) {
 	email = strings.ToLower(strings.TrimSpace(email))
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
@@ -51,7 +51,7 @@ func (s *AuthService) SignUp(ctx context.Context, email string, password string)
 	return user, nil
 }
 
-func (s *AuthService) SignIn(ctx context.Context, email string, password string) (string, error) {
+func (s *Service) SignIn(ctx context.Context, email string, password string) (string, error) {
 	user, err := s.UserRepository.GetByEmail(ctx, strings.ToLower(email))
 	if err != nil {
 		return "", err
@@ -64,13 +64,13 @@ func (s *AuthService) SignIn(ctx context.Context, email string, password string)
 		return "", err
 	}
 
-	token, err := s.TokenService.Generate(user.Id)
+	t, err := s.TokenService.Generate(user.Id)
 	if err != nil {
 		return "", err
 	}
-	return token, nil
+	return t, nil
 }
 
-func (s *AuthService) RefreshToken(ctx context.Context, token string) (*entities.User, error) {
+func (s *Service) RefreshToken() (*entities.User, error) {
 	return nil, errors.New("refresh token lookup is not implemented")
 }

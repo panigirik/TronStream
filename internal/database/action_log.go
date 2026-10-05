@@ -31,7 +31,12 @@ func (p *PayloadRepository) SaveBatch(ctx context.Context, logs []entities.Actio
 
 	br := p.db.SendBatch(ctx, batch)
 
-	defer br.Close()
+	defer func(br pgx.BatchResults) {
+		err := br.Close()
+		if err != nil {
+			return
+		}
+	}(br)
 	var errs []error
 
 	for i := 0; i < len(logs); i++ {

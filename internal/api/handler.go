@@ -7,7 +7,7 @@ import (
 )
 
 type Handler struct {
-	AuthService *auth.AuthService
+	AuthService *auth.Service
 }
 
 func (h *Handler) Routes(mux *http.ServeMux) {
@@ -15,7 +15,7 @@ func (h *Handler) Routes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /v1/auth/sign-in", h.SignIn)
 }
 
-func HealthHandler(w http.ResponseWriter, r *http.Request) {
+func HealthHandler(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("{\"status\":\"ok\"}"))

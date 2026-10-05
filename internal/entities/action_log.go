@@ -3,8 +3,8 @@ package entities
 import "time"
 
 type ActionLog struct {
-	UserId    string
-	Payload   string
-	Method    string
-	CreatedAt time.Time
+	UserId    string    `db:"user_id"`
+	Payload   string    `db:"payload"`
+	Method    string    `db:"method"`
+	CreatedAt time.Time `db:"created_at"`
 }

@@ -7,7 +7,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
-type WalletService struct {
+type Service struct {
 	encryptionKeys []string
 }
 
@@ -17,11 +17,11 @@ type GeneratedWallet struct {
 	Address    string
 }
 
-func NewWalletService(encryptionKeys []string) *WalletService {
-	return &WalletService{encryptionKeys: encryptionKeys}
+func NewWalletService(encryptionKeys []string) *Service {
+	return &Service{encryptionKeys: encryptionKeys}
 }
 
-func (w *WalletService) GenerateKey() (GeneratedWallet, error) {
+func (w *Service) GenerateKey() (GeneratedWallet, error) {
 	privateKey, err := crypto.GenerateKey()
 	if err != nil {
 		return GeneratedWallet{}, err

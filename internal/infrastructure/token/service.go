@@ -11,18 +11,18 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-type TokenService struct {
+type Service struct {
 	secret              string
 	authTokenRepository database.AuthTokenRepository
 	JwtService          *JwtService
 }
 
-type TokenResponse struct {
+type Response struct {
 	AccessToken  string `json:"access_token"`
 	RefreshToken string `json:"refresh_token"`
 }
 
-func (s *TokenService) Generate(userID int64) (string, error) {
+func (s *Service) Generate(userID int64) (string, error) {
 	claims := Claims{
 		UserID: userID,
 		RegisteredClaims: jwt.RegisteredClaims{
@@ -36,8 +36,8 @@ func (s *TokenService) Generate(userID int64) (string, error) {
 	return token.SignedString([]byte(s.secret))
 }
 
-func (ts *TokenService) GenerateTokenPair(ctx context.Context, refreshToken string) (*TokenResponse, error) {
-	var oldToken, err = ts.authTokenRepository.GetByRefresh(ctx, refreshToken)
+func (s *Service) GenerateTokenPair(ctx context.Context, refreshToken string) (*Response, error) {
+	var oldToken, err = s.authTokenRepository.GetByRefresh(ctx, refreshToken)
 	if err != nil {
 		return nil, err
 	}
@@ -46,7 +46,7 @@ func (ts *TokenService) GenerateTokenPair(ctx context.Context, refreshToken stri
 		return nil, errors.New("token is expired")
 	}
 
-	accessToken, err := ts.JwtService.GenerateAccessToken(oldToken.UserId)
+	accessToken, err := s.JwtService.GenerateAccessToken(oldToken.UserId)
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +58,7 @@ func (ts *TokenService) GenerateTokenPair(ctx context.Context, refreshToken stri
 		}
 	}
 
-	if err := ts.authTokenRepository.Rotate(
+	if err := s.authTokenRepository.Rotate(
 		ctx,
 		oldToken.UserId,
 		newRefreshToken,
@@ -66,7 +66,7 @@ func (ts *TokenService) GenerateTokenPair(ctx context.Context, refreshToken stri
 		return nil, err
 	}
 
-	return &TokenResponse{AccessToken: accessToken, RefreshToken: newRefreshToken}, nil
+	return &Response{AccessToken: accessToken, RefreshToken: newRefreshToken}, nil
 }
 
 func generateRefreshToken() (string, error) {

@@ -8,14 +8,15 @@ import (
 )
 
 type Config struct {
-	Database      Database `env: "DATABASE", env_defeault: DATABASE`
-	MigrationsDir string   `env: "MIGRATIONS_DIR", env_default: "./database/migrations"`
+	Database      Database `env:"DATABASE" env_defeault:"DATABASE"`
+	MigrationsDir string   `env:"MIGRATIONS_DIR" env_default:"./database/migrations"`
 }
 
 type Database struct {
-	Addr     string `env: ADDRESS,`
-	Username string `env: USERNAME,`
-	Password string `env: PASSWORD,`
+	Addr     string `env:"ADDRESS"`
+	Username string `env:"USERNAME"`
+	Password string `env:"PASSWORD"`
+	Name     string `env:"NAME"`
 }
 
 func LoadConfig() (*Config, error) {
@@ -29,12 +30,14 @@ func LoadConfig() (*Config, error) {
 }
 
 func (c *Config) PostgresMigrationURL() string {
-	addr := "localhost:9000"
+	addr := "localhost:5433"
 	if len(c.Database.Addr) > 0 {
 		addr = c.Database.Addr
 	}
-	return fmt.Sprintf(
-		"clickhouse://%s?username=%s&password=%s&database=%s&x-multi-statement=true", //TODO попрпить, потому что у нас clickhouse
-		addr, c.Database.Username, c.Database.Password,
+	return fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=disable",
+		c.Database.Username,
+		c.Database.Password,
+		addr,
+		c.Database.Name,
 	)
 }

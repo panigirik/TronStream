@@ -9,7 +9,7 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-type DatabaseInitializer struct {
+type Initializer struct {
 	pgx *pgx.Tx
 }
 

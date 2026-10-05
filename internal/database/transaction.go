@@ -4,6 +4,7 @@ import (
 	"TronStream/internal/entities"
 	"context"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -21,7 +22,12 @@ func (t *TransactionRepository) AddInternalTransaction(ctx context.Context, tran
 		return err
 	}
 
-	defer tx.Rollback(ctx)
+	defer func(tx pgx.Tx, ctx context.Context) {
+		err := tx.Rollback(ctx)
+		if err != nil {
+			return
+		}
+	}(tx, ctx)
 
 	_, err = tx.Exec(ctx, `INSERT INTO internal_transactions (user_id, amount, kind, created_at)
 		VALUES ($1, $2, $3, $4)`,
@@ -42,7 +48,12 @@ func (t *TransactionRepository) AddBlockchainTransaction(ctx context.Context, tr
 		return err
 	}
 
-	defer tx.Rollback(ctx)
+	defer func(tx pgx.Tx, ctx context.Context) {
+		err := tx.Rollback(ctx)
+		if err != nil {
+			return
+		}
+	}(tx, ctx)
 
 	_, err = tx.Exec(ctx, `INSERT INTO blockchain_transactions (user_id, amount, kind, created_at)
 		VALUES ($1, $2, $3, $4)`,

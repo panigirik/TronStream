@@ -2,15 +2,13 @@ package entities
 
 import (
 	"time"
-
-	"golang.org/x/crypto/bcrypt"
 )
 
 type BlockchainTransaction struct {
-	Hash        bcrypt.HashVersionTooNewError
-	Transaction Transaction
+	Hash        string      `db:"hash"`
+	Transaction Transaction `db:""`
 }
 
-func NewBlockchainTransaction(hash bcrypt.HashVersionTooNewError, userId int64, amount float64, kind TransactionKind) *BlockchainTransaction {
+func NewBlockchainTransaction(hash string, userId int64, amount float64, kind TransactionKind) *BlockchainTransaction {
 	return &BlockchainTransaction{Hash: hash, Transaction: Transaction{UserId: userId, Amount: amount, Kind: kind, CreatedAt: time.Now()}}
 }

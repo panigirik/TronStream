@@ -5,12 +5,13 @@ import (
 	"context"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type WalletRepository struct {
 	pgx    *pgxpool.Pool
-	wallet *wallet.WalletService
+	wallet *wallet.Service
 }
 
 func NewWalletRepository(pgx *pgxpool.Pool) *WalletRepository {
@@ -25,6 +26,13 @@ func (w *WalletRepository) AddWallet(ctx context.Context, userId int64) error {
 	if err != nil {
 		return err
 	}
+
+	defer func(tx pgx.Tx, ctx context.Context) {
+		err := tx.Rollback(ctx)
+		if err != nil {
+			return
+		}
+	}(tx, ctx)
 
 	generatedWallet, err := w.wallet.GenerateKey()
 	if err != nil {

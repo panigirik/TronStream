@@ -4,6 +4,7 @@ import (
 	"TronStream/internal/entities"
 	"context"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -34,7 +35,12 @@ func (a *AuthTokenRepository) Rotate(ctx context.Context, userId int64, NewRefre
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback(ctx)
+	defer func(tx pgx.Tx, ctx context.Context) {
+		err := tx.Rollback(ctx)
+		if err != nil {
+			return
+		}
+	}(tx, ctx)
 
 	_, err = tx.Exec(ctx,
 		`INSERT INTO auth_tokens (user_id, refresh_token, created_at, expires_at)
