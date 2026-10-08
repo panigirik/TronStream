@@ -1,13 +1,15 @@
 package api
 
 import (
+	"TronStream/internal/database"
 	"TronStream/internal/infrastructure/auth"
 	"encoding/json"
 	"net/http"
 )
 
 type Handler struct {
-	AuthService *auth.Service
+	AuthService      *auth.Service
+	WalletRepository *database.WalletRepository
 }
 
 func (h *Handler) Routes(mux *http.ServeMux) {
@@ -15,7 +17,7 @@ func (h *Handler) Routes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /v1/auth/sign-in", h.SignIn)
 }
 
-func HealthHandler(w http.ResponseWriter) {
+func HealthHandler(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("{\"status\":\"ok\"}"))
