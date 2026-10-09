@@ -1,10 +1,9 @@
 package background_jobs
 
 import (
+	"TronStream/internal/entities"
 	"context"
 	"log"
-
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type UserDepositInfo struct {
@@ -22,15 +21,13 @@ type WalletDetails struct {
 }
 
 type WalletRepositroyInterface interface {
-	Deposit(ctx context.Context, user_id int64, amount float64) (string, error)
 	GetUsersWithPositiveBalance(ctx context.Context) ([]UserDepositInfo, error)
-	GetWalletByUserId(ctx context.Context, user_id int64) (WalletDetails, error)
+	GetWalletByUserId(ctx context.Context, user_id int64) (entities.Wallet, error)
 	TransferCrypto(ctx context.Context, user_id int64, amount float64, privateKey string) error
 	ResetUserBalance(ctx context.Context, user_id int64) error
 }
 
 type SweepDeposits struct {
-	db   *pgxpool.Pool
 	repo WalletRepositroyInterface
 }
 
@@ -51,8 +48,7 @@ func (s *SweepDeposits) Run(ctx context.Context) error {
 			continue
 		}
 
-		privateKey := wallet.PrivateKeyEncrypted
-		err = s.repo.TransferCrypto(ctx, user.UserId, user.Balance, privateKey)
+		err = s.repo.TransferCrypto(ctx, user.UserId, user.Balance, wallet.PrivateKeyEncrypted)
 		if err != nil {
 			log.Printf("[ERROR] failed to transfer crypto for user %d: %v", user.UserId, err)
 			continue

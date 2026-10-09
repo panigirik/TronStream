@@ -1,20 +1,18 @@
 package tron_node
 
 import (
-	"TronStream/internal/config"
 	"TronStream/internal/infrastructure/wallet"
 	"bytes"
 	"context"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/ethereum/go-ethereum/crypto"
 	"io"
 	"net/http"
 	"net/url"
 	"strconv"
 	"time"
-
-	"github.com/ethereum/go-ethereum/crypto"
 )
 
 const (
@@ -27,7 +25,6 @@ type Client struct {
 	baseURL string
 	apiKey  string
 	http    *http.Client
-	config  *config.Config
 }
 
 type Option func(*Client)
@@ -138,15 +135,17 @@ func (c *Client) BroadcastTransaction(tx *wallet.TronTransaction) (*BroadcastRes
 		return nil, err
 	}
 
-	req, err := http.NewRequest("POST", c.config.Tron.BaseURL+"wallet/broadcasttransaction", bytes.NewBuffer(jsonData))
+	req, err := http.NewRequest(http.MethodPost, c.baseURL+"/wallet/broadcasttransaction", bytes.NewBuffer(jsonData))
 	if err != nil {
 		return nil, err
 	}
 
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
-	client := &http.Client{Timeout: defaultPageLimit * time.Second}
-	response, err := client.Do(req)
+	if c.apiKey != "" {
+		req.Header.Set("TRON-PRO-API-KEY", c.apiKey)
+	}
+	response, err := c.http.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -161,7 +160,56 @@ func (c *Client) BroadcastTransaction(tx *wallet.TronTransaction) (*BroadcastRes
 		return nil, err
 	}
 
+	if !broadcastResponse.Result {
+		return nil, &APIError{StatusCode: response.StatusCode, Message: broadcastResponse.Message}
+	}
+
 	return &broadcastResponse, nil
+}
+
+func (c *Client) CreateTransaction(ctx context.Context, fromAddress string, toAddress string, amountSun int64) (*wallet.TronTransaction, error) {
+	requestBody := map[string]interface{}{
+		"owner_address": fromAddress,
+		"to_address":    toAddress,
+		"amount":        amountSun,
+		"visible":       true,
+	}
+
+	jsonData, err := json.Marshal(requestBody)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/wallet/createtransaction", bytes.NewBuffer(jsonData))
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+	if c.apiKey != "" {
+		req.Header.Set("TRON-PRO-API-KEY", c.apiKey)
+	}
+	response, err := c.http.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer response.Body.Close()
+
+	if response.StatusCode < http.StatusOK || response.StatusCode >= http.StatusMultipleChoices {
+		body, _ := io.ReadAll(io.LimitReader(response.Body, errorBodyLimit))
+		return nil, &APIError{StatusCode: response.StatusCode, Message: string(body)}
+	}
+
+	var transaction wallet.TronTransaction
+	if err := json.NewDecoder(response.Body).Decode(&transaction); err != nil {
+		return nil, err
+	}
+	if transaction.TxId == "" {
+		return nil, &APIError{StatusCode: response.StatusCode, Message: "Tron node returned an empty transaction"}
+	}
+
+	return &transaction, nil
 }
 
 func (c *Client) buildURL(q TransfersQuery) string {

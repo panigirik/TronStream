@@ -1,7 +1,7 @@
 package wallet
 
 type TronTransaction struct {
-	TxId       string   `json:"txId"`
+	TxId       string   `json:"txID"`
 	RawData    RawData  `json:"raw_data"`
 	RawDataHEx string   `json:"raw_data_hex"`
 	Signature  []string `json:"signature,omitempty"`

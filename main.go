@@ -4,6 +4,7 @@ import (
 	"TronStream/internal/api"
 	"TronStream/internal/config"
 	"TronStream/internal/database"
+	"TronStream/internal/database/seeds"
 	"TronStream/internal/infrastructure/background_jobs"
 	"TronStream/internal/infrastructure/tron_node"
 	"TronStream/internal/middleware"
@@ -37,18 +38,22 @@ func main() {
 	}
 	defer pool.Close()
 
+	seed := &seeds.UserSeed{Db: pool}
+	if err := seed.SeedAdminUser(ctx); err != nil {
+		log.Fatal(err)
+	}
+
 	if err := pool.Ping(ctx); err != nil {
 		log.Fatalf("БД недоступна: %v", err)
 	}
-
-	walletRepository := database.NewWalletRepository(pool)
-	depositRepository := database.NewDepositRepository(pool)
 
 	tronClient := tron_node.NewClient(
 		cfg.Tron.BaseURL,
 		cfg.Tron.RequestTimeout,
 		tron_node.WithAPIKey(cfg.Tron.APIKey),
 	)
+	walletRepository := database.NewWalletRepository(pool, tronClient)
+	depositRepository := database.NewDepositRepository(pool)
 
 	var jobs []background_jobs.Job
 	if cfg.Tron.PollerEnabled {

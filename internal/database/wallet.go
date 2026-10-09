@@ -3,9 +3,12 @@ package database
 import (
 	"TronStream/internal/entities"
 	"TronStream/internal/infrastructure/background_jobs"
+	"TronStream/internal/infrastructure/tron_node"
 	"TronStream/internal/infrastructure/wallet"
 	"context"
 	"errors"
+	"fmt"
+	"math"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -15,13 +18,18 @@ import (
 type WalletRepository struct {
 	pgx    *pgxpool.Pool
 	wallet *wallet.Service
+	client *tron_node.Client
 }
 
-func NewWalletRepository(pgx *pgxpool.Pool) *WalletRepository {
-	return &WalletRepository{
+func NewWalletRepository(pgx *pgxpool.Pool, clients ...*tron_node.Client) *WalletRepository {
+	repository := &WalletRepository{
 		pgx:    pgx,
 		wallet: wallet.NewWalletService(nil),
 	}
+	if len(clients) > 0 {
+		repository.client = clients[0]
+	}
+	return repository
 }
 
 func (w *WalletRepository) AddWallet(ctx context.Context, userId int64) error {
@@ -103,7 +111,7 @@ func (w *WalletRepository) ListWatchedWallets(ctx context.Context) ([]entities.W
 	return wallets, nil
 }
 
-func (w *WalletRepository) GetUsersWithPositiveBalance(ctx context.Context, user_id string) ([]background_jobs.UserDepositInfo, error) {
+func (w *WalletRepository) GetUsersWithPositiveBalance(ctx context.Context) ([]background_jobs.UserDepositInfo, error) {
 	rows, err := w.pgx.Query(ctx, `SELECT user_id, balance FROM Balance WHERE balance > 0`)
 	if err != nil {
 		return nil, err
@@ -159,7 +167,7 @@ func (w *WalletRepository) ResetUserBalance(ctx context.Context, user_id int64) 
 		}
 	}(tx, ctx)
 
-	_, err = w.pgx.Exec(ctx, `UPDATE WALLET SET Amount = 0 WHERE user_id = $1`, user_id)
+	_, err = tx.Exec(ctx, `UPDATE balances SET balance = 0, updated_at = now() WHERE user_id = $1`, user_id)
 	if err != nil {
 		return err
 	}
@@ -181,5 +189,39 @@ func (w *WalletRepository) GetUserIdByWallet(ctx context.Context, walletAddress 
 	return userId, nil
 }
 
+func (w *WalletRepository) TransferCrypto(ctx context.Context, userID int64, amount float64, privateKey string) error {
+	if w.client == nil {
+		return errors.New("tron client is not configured")
+	}
+	if amount <= 0 || math.IsNaN(amount) || math.IsInf(amount, 0) {
+		return errors.New("invalid transfer amount")
+	}
+
+	source, err := w.GetWalletByUserId(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	amountSun := int64(math.Round(amount * 1_000_000))
+	if amountSun <= 0 {
+		return errors.New("transfer amount is too small")
+	}
+
+	transaction, err := w.client.CreateTransaction(ctx, source.Address, background_jobs.MainAddress, amountSun)
+	if err != nil {
+		return fmt.Errorf("create transaction: %w", err)
+	}
+	if err := w.client.SignTransaction(transaction, privateKey); err != nil {
+		return fmt.Errorf("sign transaction: %w", err)
+	}
+
+	if _, err := w.client.BroadcastTransaction(transaction); err != nil {
+		return fmt.Errorf("broadcast transaction: %w", err)
+	}
+
+	return nil
+}
+
 // Проверка на этапе компиляции, что репозиторий закрывает интерфейс джоба.
 var _ background_jobs.WatchedWalletSource = (*WalletRepository)(nil)
+var _ background_jobs.WalletRepositroyInterface = (*WalletRepository)(nil)
